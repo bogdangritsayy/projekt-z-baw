@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Serwis z modelem AI (Python/FastAPI)
+  ml-service:
+    build:
+      context: ./ml-service
+    container_name: ml-service
+    networks:
+      - flight-network
+
+  # Brama API (Node.js/Express)
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - ML_SERVICE_URL=http://ml-service:8000/predict
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - ml-service
+    networks:
+      - flight-network
+      
+  # Baza danych
+  db:
+    image: postgres:14-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: flightdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+networks:
+  flight-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
